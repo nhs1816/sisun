@@ -200,6 +200,40 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 @media (prefers-reduced-motion:no-preference){.lens{animation:in .25s ease}@keyframes in{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:none}}}
 </style>
 
+<style>
+.gate{position:fixed;inset:0;z-index:50;background:var(--bg);overflow-y:auto;padding:0 16px}
+.gate-in{max-width:480px;margin:0 auto;padding:calc(40px + env(safe-area-inset-top,0px)) 0 calc(40px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:22px}
+.gate h1{font-size:27px}
+.gate fieldset{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.gate legend{font-weight:600;padding:0;margin-bottom:8px}
+.gate select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;width:100%}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:9px 16px;cursor:pointer;font-size:14.5px}
+.chip[aria-pressed=true]{border-color:var(--accent);background:var(--soft);color:var(--accent);font-weight:600}
+.gate .btn[disabled]{opacity:.4;cursor:default}
+.linkbtn{background:none;border:0;padding:6px 0 0;color:var(--muted);text-decoration:underline;text-underline-offset:3px;cursor:pointer;font-size:12.5px}
+</style>
+<div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gateTitle" hidden>
+  <div class="gate-in">
+    <div class="logo">시선들<small>하나의 이슈, 다섯 개의 눈</small></div>
+    <h1 id="gateTitle">시작하기 전에<br>세 가지만 알려 주세요</h1>
+    <p class="muted">이름이나 연락처는 묻지 않아요. 입력한 정보는 이 휴대폰에만 저장되고, 어디에도 보내지 않아요.</p>
+    <fieldset>
+      <legend>태어난 해</legend>
+      <select id="gBirth" aria-label="태어난 해"></select>
+    </fieldset>
+    <fieldset>
+      <legend>성별</legend>
+      <div class="chips" data-k="gender"><button class="chip" data-v="m">남성</button><button class="chip" data-v="f">여성</button><button class="chip" data-v="na">말하고 싶지 않음</button></div>
+    </fieldset>
+    <fieldset>
+      <legend>국적</legend>
+      <div class="chips" data-k="nation"><button class="chip" data-v="kr">내국인</button><button class="chip" data-v="foreign">외국인</button><button class="chip" data-v="na">말하고 싶지 않음</button></div>
+    </fieldset>
+    <button class="btn" id="gStart" disabled>시작하기</button>
+    <p class="fine">세 항목 모두 '말하고 싶지 않음'을 골라도 돼요. 나중에 화면 맨 아래 '내 정보 바꾸기'에서 고칠 수 있어요.</p>
+  </div>
+</div>
 <div class="wrap">
   <header class="mast">
     <div class="logo">시선들<small>하나의 이슈, 다섯 개의 눈</small></div>
@@ -227,7 +261,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
     <div id="edition" class="view"></div>
     <p class="cloud" id="cloud"><i></i><span>읽은 기록과 응답은 이 기기에만 저장돼요.</span></p>
     <div class="prompt" id="install" hidden><p id="installText">홈 화면에 설치하면 앱처럼 바로 열 수 있어요.</p><button id="installBtn">설치하기</button><button id="installClose" aria-label="안내 닫기" style="background:none;color:var(--muted);padding:8px">닫기</button></div>
-    <p class="foot">시선들은 결론을 내려주지 않아요. 각 시선은 실제로 오가는 주장을 가장 설득력 있는 형태로 정리하고, 그 시선에 가장 아픈 반론을 함께 붙여요.</p>
+    <p class="foot">시선들은 결론을 내려주지 않아요. 각 시선은 실제로 오가는 주장을 가장 설득력 있는 형태로 정리하고, 그 시선에 가장 아픈 반론을 함께 붙여요.<br><button id="profileEdit" class="linkbtn">내 정보 바꾸기</button></p>
   </section>
 
   <!-- DETAIL -->
@@ -776,6 +810,43 @@ $("copy").onclick = async ()=>{
   setCloud("off");
   if (INDEX.length) selectDate(latest); else { renderCal(); $("edition").innerHTML = `<p class="empty">아직 발행된 호가 없어요.</p>`; }
   initCloud();
+})();
+</script>
+
+<script>
+/* 첫 방문 화면 */
+(function(){
+  const KEY = "sisun:profile", gate = document.getElementById("gate"), wrap = document.querySelector(".wrap");
+  const sel = document.getElementById("gBirth"), start = document.getElementById("gStart");
+  let saved = null; try { saved = JSON.parse(localStorage.getItem(KEY)); } catch(e) {}
+  const p = { birth: "", gender: "", nation: "" };
+  const thisYear = new Date().getFullYear();
+  let opts = '<option value="">선택해 주세요</option><option value="na">말하고 싶지 않음</option>';
+  for (let y = thisYear - 7; y >= 1930; y--) opts += `<option value="${y}">${y}년</option>`;
+  sel.innerHTML = opts;
+  const check = () => { start.disabled = !(p.birth && p.gender && p.nation); };
+  sel.onchange = () => { p.birth = sel.value; check(); };
+  gate.querySelectorAll(".chips").forEach(g => g.querySelectorAll(".chip").forEach(c => {
+    c.setAttribute("aria-pressed", "false");
+    c.onclick = () => { g.querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", x === c)); p[g.dataset.k] = c.dataset.v; check(); };
+  }));
+  function open(){
+    if (saved) {
+      p.birth = String(saved.birth || ""); p.gender = saved.gender || ""; p.nation = saved.nation || "";
+      sel.value = p.birth;
+      gate.querySelectorAll(".chips").forEach(g => g.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", c.dataset.v === p[g.dataset.k])));
+      start.textContent = "저장하기";
+    }
+    check(); gate.hidden = false; wrap.setAttribute("aria-hidden", "true"); document.body.style.overflow = "hidden";
+  }
+  function close(){ gate.hidden = true; wrap.removeAttribute("aria-hidden"); document.body.style.overflow = ""; }
+  start.onclick = () => {
+    saved = { birth: p.birth === "na" ? "na" : +p.birth, gender: p.gender, nation: p.nation, at: new Date().toISOString().slice(0,10) };
+    try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch(e) {}
+    close(); window.scrollTo(0,0);
+  };
+  document.getElementById("profileEdit").onclick = open;
+  if (!saved) open();
 })();
 </script>
 
