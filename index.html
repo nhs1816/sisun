@@ -224,7 +224,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   <div class="gate-in">
     <div class="logo">시선들<small>하나의 이슈, 다섯 개의 눈</small></div>
     <h1 id="gateTitle">시작하기 전에<br>세 가지만 알려 주세요</h1>
-    <p class="muted">이름이나 연락처는 묻지 않아요. 입력한 정보는 이 휴대폰에만 저장돼요.</p>
+    <p class="muted">이름이나 연락처는 묻지 않아요. 입력한 정보는 어떤 분들이 시선들을 읽는지 알기 위한 통계에만 써요.</p>
     <fieldset>
       <legend>태어난 해</legend>
       <select id="gBirth" aria-label="태어난 해"></select>
@@ -236,6 +236,19 @@ input[type=range]{width:100%;accent-color:var(--accent)}
     <fieldset>
       <legend>국적</legend>
       <div class="chips" data-k="nation"><button class="chip" data-v="kr">내국인</button><button class="chip" data-v="foreign">외국인</button></div>
+    </fieldset>
+    <fieldset class="consent">
+      <label><input type="checkbox" id="gAge"> <span>만 14세 이상이에요 (필수)</span></label>
+      <label><input type="checkbox" id="gAgree"> <span>위 정보의 수집·이용에 동의해요 (필수)</span></label>
+      <details><summary>무엇을, 왜, 얼마나 보관하나요?</summary>
+        <ul>
+          <li>수집 항목: 태어난 해, 성별, 국적, 기기마다 만들어지는 무작위 번호</li>
+          <li>목적: 독자 구성 통계</li>
+          <li>보관 기간: 삭제를 요청하거나 서비스를 마칠 때까지</li>
+          <li>동의하지 않아도 아래 '입력하지 않고 둘러보기'로 모든 내용을 볼 수 있어요.</li>
+        </ul>
+        <a href="privacy.html" target="_blank" rel="noopener">개인정보처리방침 전문 보기</a>
+      </details>
     </fieldset>
 
     <button class="btn" id="gStart" disabled>시작하기</button>
@@ -825,7 +838,7 @@ $("copy").onclick = async ()=>{
 <script>
 /* 첫 방문 화면 */
 (function(){
-  const ENDPOINT = "";
+  const ENDPOINT = "https://script.google.com/macros/s/AKfycbykhHuTNsbbO1K-GoRaTorr9zmRZbPxYl4e2EUPT11OHBw_LL6nwmlsDmVnZg-dpNxUJQ/exec";
   const KEY = "sisun:profile", gate = document.getElementById("gate"), wrap = document.querySelector(".wrap");
   const sel = document.getElementById("gBirth"), start = document.getElementById("gStart"), skip = document.getElementById("gSkip");
   const age = document.getElementById("gAge"), agree = document.getElementById("gAgree");
