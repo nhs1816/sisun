@@ -212,26 +212,35 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .chip[aria-pressed=true]{border-color:var(--accent);background:var(--soft);color:var(--accent);font-weight:600}
 .gate .btn[disabled]{opacity:.4;cursor:default}
 .linkbtn{background:none;border:0;padding:6px 0 0;color:var(--muted);text-decoration:underline;text-underline-offset:3px;cursor:pointer;font-size:12.5px}
+.consent{background:var(--surface);border:1px solid var(--line)!important;border-radius:12px;padding:14px 16px!important;gap:10px!important}
+.consent label{display:flex;gap:10px;align-items:flex-start;font-size:14.5px;cursor:pointer}
+.consent input{width:18px;height:18px;margin:3px 0 0;accent-color:var(--accent);flex:none}
+.consent details{font-size:13px;color:var(--muted)}
+.consent summary{cursor:pointer}
+.consent ul{margin:8px 0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+.gate .skip{align-self:center}
 </style>
 <div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gateTitle" hidden>
   <div class="gate-in">
     <div class="logo">시선들<small>하나의 이슈, 다섯 개의 눈</small></div>
     <h1 id="gateTitle">시작하기 전에<br>세 가지만 알려 주세요</h1>
-    <p class="muted">이름이나 연락처는 묻지 않아요. 입력한 정보는 이 휴대폰에만 저장되고, 어디에도 보내지 않아요.</p>
+    <p class="muted">이름이나 연락처는 묻지 않아요. 입력한 정보는 이 휴대폰에만 저장돼요.</p>
     <fieldset>
       <legend>태어난 해</legend>
       <select id="gBirth" aria-label="태어난 해"></select>
     </fieldset>
     <fieldset>
       <legend>성별</legend>
-      <div class="chips" data-k="gender"><button class="chip" data-v="m">남성</button><button class="chip" data-v="f">여성</button><button class="chip" data-v="na">말하고 싶지 않음</button></div>
+      <div class="chips" data-k="gender"><button class="chip" data-v="m">남성</button><button class="chip" data-v="f">여성</button></div>
     </fieldset>
     <fieldset>
       <legend>국적</legend>
-      <div class="chips" data-k="nation"><button class="chip" data-v="kr">내국인</button><button class="chip" data-v="foreign">외국인</button><button class="chip" data-v="na">말하고 싶지 않음</button></div>
+      <div class="chips" data-k="nation"><button class="chip" data-v="kr">내국인</button><button class="chip" data-v="foreign">외국인</button></div>
     </fieldset>
+
     <button class="btn" id="gStart" disabled>시작하기</button>
-    <p class="fine">세 항목 모두 '말하고 싶지 않음'을 골라도 돼요. 나중에 화면 맨 아래 '내 정보 바꾸기'에서 고칠 수 있어요.</p>
+    <p class="fine" id="gId" hidden></p>
+    <button class="linkbtn skip" id="gSkip">입력하지 않고 둘러보기</button>
   </div>
 </div>
 <div class="wrap">
@@ -816,37 +825,66 @@ $("copy").onclick = async ()=>{
 <script>
 /* 첫 방문 화면 */
 (function(){
+  const ENDPOINT = "";
   const KEY = "sisun:profile", gate = document.getElementById("gate"), wrap = document.querySelector(".wrap");
-  const sel = document.getElementById("gBirth"), start = document.getElementById("gStart");
+  const sel = document.getElementById("gBirth"), start = document.getElementById("gStart"), skip = document.getElementById("gSkip");
+  const age = document.getElementById("gAge"), agree = document.getElementById("gAgree");
+  const today = () => new Date().toISOString().slice(0,10);
+  const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch(e) {} };
+  const valid = s => s && (s.skipped || (s.birth >= 1930 && ["m","f"].includes(s.gender) && ["kr","foreign"].includes(s.nation)));
   let saved = null; try { saved = JSON.parse(localStorage.getItem(KEY)); } catch(e) {}
+  if (!valid(saved)) saved = null;
+  function uid(){
+    let id = null; try { id = localStorage.getItem("sisun:uid"); } catch(e) {}
+    if (!id) {
+      id = (crypto.randomUUID ? crypto.randomUUID() : Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2,"0")).join(""));
+      try { localStorage.setItem("sisun:uid", id); } catch(e) {}
+    }
+    return id;
+  }
+  function sync(){
+    if (!ENDPOINT || !saved || saved.skipped || !saved.consentAt || saved.synced) return;
+    const body = JSON.stringify({ id: uid(), birth: saved.birth, gender: saved.gender, nation: saved.nation, consentAt: saved.consentAt });
+    fetch(ENDPOINT, { method: "POST", mode: "no-cors", body }).then(() => { saved.synced = true; persist(); }).catch(() => {});
+  }
+
   const p = { birth: "", gender: "", nation: "" };
   const thisYear = new Date().getFullYear();
-  let opts = '<option value="">선택해 주세요</option><option value="na">말하고 싶지 않음</option>';
-  for (let y = thisYear - 7; y >= 1930; y--) opts += `<option value="${y}">${y}년</option>`;
+  let opts = '<option value="">선택해 주세요</option>';
+  for (let y = thisYear - 14; y >= 1930; y--) opts += `<option value="${y}">${y}년</option>`;
   sel.innerHTML = opts;
-  const check = () => { start.disabled = !(p.birth && p.gender && p.nation); };
+  const check = () => { start.disabled = !(p.birth && p.gender && p.nation && (!ENDPOINT || (age.checked && agree.checked))); };
   sel.onchange = () => { p.birth = sel.value; check(); };
+  if (age) { age.onchange = check; agree.onchange = check; }
   gate.querySelectorAll(".chips").forEach(g => g.querySelectorAll(".chip").forEach(c => {
     c.setAttribute("aria-pressed", "false");
     c.onclick = () => { g.querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", x === c)); p[g.dataset.k] = c.dataset.v; check(); };
   }));
   function open(){
-    if (saved) {
-      p.birth = String(saved.birth || ""); p.gender = saved.gender || ""; p.nation = saved.nation || "";
+    const editing = saved && !saved.skipped;
+    if (editing) {
+      p.birth = String(saved.birth); p.gender = saved.gender; p.nation = saved.nation;
       sel.value = p.birth;
       gate.querySelectorAll(".chips").forEach(g => g.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", c.dataset.v === p[g.dataset.k])));
-      start.textContent = "저장하기";
+      if (age && saved.consentAt) { age.checked = true; agree.checked = true; }
     }
+    start.textContent = editing ? "저장하기" : "시작하기";
+    skip.textContent = saved ? "닫기" : "입력하지 않고 둘러보기";
+    const idEl = document.getElementById("gId");
+    if (ENDPOINT && editing && saved.consentAt) { idEl.textContent = `내 무작위 번호: ${uid().slice(0,8)} · 정보 삭제를 요청할 때 알려 주세요.`; idEl.hidden = false; } else idEl.hidden = true;
     check(); gate.hidden = false; wrap.setAttribute("aria-hidden", "true"); document.body.style.overflow = "hidden";
   }
-  function close(){ gate.hidden = true; wrap.removeAttribute("aria-hidden"); document.body.style.overflow = ""; }
+  function close(){ gate.hidden = true; wrap.removeAttribute("aria-hidden"); document.body.style.overflow = ""; window.scrollTo(0,0); }
   start.onclick = () => {
-    saved = { birth: p.birth === "na" ? "na" : +p.birth, gender: p.gender, nation: p.nation, at: new Date().toISOString().slice(0,10) };
-    try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch(e) {}
-    close(); window.scrollTo(0,0);
+    const prev = saved && !saved.skipped ? saved : null;
+    const same = prev && prev.birth === +p.birth && prev.gender === p.gender && prev.nation === p.nation;
+    saved = { birth: +p.birth, gender: p.gender, nation: p.nation, at: today() };
+    if (ENDPOINT) { saved.consentAt = (prev && prev.consentAt) || today(); saved.synced = !!(same && prev.synced); }
+    persist(); sync(); close();
   };
+  skip.onclick = () => { if (!saved) { saved = { skipped: true, at: today() }; persist(); } close(); };
   document.getElementById("profileEdit").onclick = open;
-  if (!saved) open();
+  if (!saved) open(); else sync();
 })();
 </script>
 
