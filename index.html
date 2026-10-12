@@ -1,0 +1,802 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>시선들</title>
+<meta name="description" content="하나의 이슈, 다섯 개의 눈. 결론을 내려주지 않는 데일리 이슈 읽기.">
+<meta name="theme-color" content="#f3f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#11161c" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="시선들">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<style>
+body{margin:0;-webkit-tap-highlight-color:transparent}
+.wrap{padding-top:calc(28px + env(safe-area-inset-top,0px))!important;padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))!important}
+</style>
+</head>
+<body>
+<style>
+/* Layout: 한 줄 읽기 칼럼(앱 느낌). 시선/축마다 고유 색, 달력은 읽음 상태를 칸 색으로 */
+:root{
+  --bg:#f3f5f7; --surface:#ffffff; --ink:#18212b; --muted:#5d6b78; --line:#dde3e9; --accent:#2747c9; --soft:#e8edf9; --onaccent:#ffffff;
+  --l1:#c2410c; --l2:#1d6fb8; --l3:#5b6b1e; --l4:#9b2c8a; --l5:#0f766e;
+  --display:"Gowun Batang", "Noto Serif KR", serif;
+  --body:"IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11161c; --surface:#1a2129; --ink:#e7ecf1; --muted:#9aa8b5; --line:#2c3640; --accent:#8ea2ff; --soft:#222c45; --onaccent:#11161c;
+  --l1:#fb8c4f; --l2:#6cb2f0; --l3:#b5c95a; --l4:#e17fd2; --l5:#4fd1c0; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11161c; --surface:#1a2129; --ink:#e7ecf1; --muted:#9aa8b5; --line:#2c3640; --accent:#8ea2ff; --soft:#222c45; --onaccent:#11161c;
+  --l1:#fb8c4f; --l2:#6cb2f0; --l3:#b5c95a; --l4:#e17fd2; --l5:#4fd1c0; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.7;padding:0 16px}
+.wrap{max-width:560px;margin:0 auto;padding-block:28px 64px;display:flex;flex-direction:column;gap:22px}
+.view{display:flex;flex-direction:column;gap:22px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.35}
+p{margin:0}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.eyebrow{font-size:12px;letter-spacing:.08em;color:var(--muted);font-weight:500}
+.muted{color:var(--muted)}
+.fine{font-size:12.5px;color:var(--muted)}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:12px}
+.box h2{font-size:18px}
+.btn{border:0;background:var(--accent);color:var(--onaccent);border-radius:10px;padding:14px 18px;font-weight:600;cursor:pointer;font-size:15px}
+.ghost{background:none;border:1px solid var(--line);border-radius:10px;padding:10px 14px;cursor:pointer;font-size:14px}
+.ghost[disabled]{opacity:.35;cursor:default}
+
+/* masthead + top tabs */
+.mast{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
+.logo{font-family:var(--display);font-size:30px;font-weight:700;line-height:1.2}
+.logo small{display:block;font-family:var(--body);font-size:13px;font-weight:400;color:var(--muted);margin-top:4px}
+.dots{display:flex;gap:4px;padding-bottom:6px}
+.dots i{width:10px;height:10px;border-radius:50%;display:block}
+.topnav{display:flex;border-bottom:1px solid var(--line);gap:20px}
+.topnav button{background:none;border:0;border-bottom:2px solid transparent;padding:6px 0 10px;cursor:pointer;color:var(--muted);font-weight:500}
+.topnav button[aria-current=page]{color:var(--ink);border-color:var(--ink);font-weight:600}
+
+/* calendar */
+.cal-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.cal-head h2{font-size:18px}
+.cal-head .arrows{display:flex;gap:6px}
+.cal-head .arrows button{background:none;border:1px solid var(--line);border-radius:8px;width:32px;height:32px;cursor:pointer}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.cal .wd{font-size:11.5px;color:var(--muted);padding-bottom:2px}
+.day{aspect-ratio:1;max-width:100%;border-radius:10px;border:1px solid transparent;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:14px;font-variant-numeric:tabular-nums;color:var(--muted);opacity:.55;padding:0}
+.day.has{cursor:pointer;opacity:1;color:var(--ink);border-color:var(--line);background:var(--surface)}
+.day.has::after{content:"";width:5px;height:5px;border-radius:50%;background:var(--accent)}
+.day.partial{background:var(--soft);border-color:var(--accent)}
+.day.partial::after{background:linear-gradient(90deg,var(--accent) 50%,var(--line) 50%)}
+.day.done{background:var(--accent);border-color:var(--accent);color:var(--onaccent);font-weight:600}
+.day.done::after{background:var(--onaccent)}
+.day.today{font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.day.sel{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--ink)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted)}
+.legend span{display:flex;align-items:center;gap:6px}
+.legend i{width:14px;height:14px;border-radius:4px;display:block;border:1px solid var(--line);background:var(--surface)}
+.legend i.p{background:var(--soft);border-color:var(--accent)}
+.legend i.d{background:var(--accent);border-color:var(--accent)}
+.legend i.n{background:none;border-style:dashed}
+.streak{font-size:13px;color:var(--muted)}
+.streak b{color:var(--ink)}
+
+/* edition + feed */
+.issueno{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.intro{font-family:var(--display);font-size:18px;line-height:1.6}
+.cloud{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.cloud i{width:7px;height:7px;border-radius:50%;background:var(--line);display:block;flex:none}
+.cloud.on i{background:var(--l5)}
+.prompt{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--soft);border-radius:12px;padding:14px 16px;flex-wrap:wrap}
+.prompt p{font-size:14px;flex:1 1 220px}
+.prompt button{border:0;background:var(--accent);color:var(--onaccent);border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer;font-size:14px}
+.feed{display:flex;flex-direction:column;gap:12px}
+.issue{display:flex;flex-direction:column;gap:8px;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;cursor:pointer;width:100%}
+.issue:hover{border-color:var(--accent)}
+.issue h3{font-size:19px}
+.issue .row{display:flex;justify-content:space-between;gap:12px;font-size:12.5px;color:var(--muted)}
+.issue .count{color:var(--accent);font-weight:600;white-space:nowrap}
+.issue .read{color:var(--onaccent);background:var(--accent);border-radius:999px;padding:0 8px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.mini{position:relative;height:6px;border-radius:3px;background:var(--line);margin-top:6px}
+.mini i{position:absolute;top:-1px;width:8px;height:8px;border-radius:50%;transform:translateX(-50%)}
+.mini .me{top:-5px;width:3px;height:16px;border-radius:1px;background:var(--ink)}
+.mini-scale{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+.status{font-size:12.5px;color:var(--muted)}
+.status b{color:var(--ink);font-weight:600}
+.empty{text-align:center;padding:28px 18px;color:var(--muted)}
+
+/* detail */
+.back{align-self:flex-start;background:none;border:0;color:var(--muted);cursor:pointer;padding:0;font-size:14px}
+.q{font-size:26px;white-space:pre-line}
+.lede{color:var(--muted)}
+.facts{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+.stance label{font-weight:600}
+.scale{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.spec{position:relative;height:118px;margin-top:6px}
+.spec .axis{position:absolute;left:0;right:0;top:58px;height:2px;background:var(--line)}
+.pin{position:absolute;top:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:0;cursor:pointer;padding:0;width:64px}
+.pin b{width:16px;height:16px;border-radius:50%;border:3px solid var(--surface);box-shadow:0 0 0 1px var(--line)}
+.pin span{font-size:11.5px;line-height:1.25;text-align:center;color:var(--muted)}
+.pin.on span{color:var(--ink);font-weight:600}
+.pin.on b{box-shadow:0 0 0 2px currentColor}
+.pin.lo{top:46px;flex-direction:column-reverse}
+.you,.expect{position:absolute;top:50px;transform:translateX(-50%);font-size:11px;font-weight:600;white-space:nowrap;pointer-events:none}
+.you{color:var(--accent)}
+.you::before{content:"";display:block;width:2px;height:18px;background:var(--accent);margin:0 auto 2px}
+.expect{color:var(--muted);top:36px}
+.expect::after{content:"";display:block;width:0;height:18px;border-left:2px dashed var(--muted);margin:2px auto 0}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+.tab{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 14px;font-size:13.5px;cursor:pointer;display:flex;align-items:center;gap:6px}
+.tab i{width:8px;height:8px;border-radius:50%;display:block}
+.tab[aria-selected=true]{border-color:currentColor;font-weight:600}
+.tab em{font-style:normal;font-size:11px;color:var(--muted);font-weight:500}
+.lens{border-top:4px solid var(--c);background:var(--surface);border-radius:4px 4px 12px 12px;border-left:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:20px 18px;display:flex;flex-direction:column;gap:14px;scroll-margin-top:16px}
+.lens .who{font-size:12.5px;color:var(--muted)}
+.lens h3{font-size:21px}
+.lens h4{margin:0 0 2px;font-size:13px;letter-spacing:.04em;color:var(--c)}
+.lens ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+.badge{align-self:flex-start;font-size:11.5px;font-weight:600;border-radius:999px;padding:1px 10px;background:var(--soft);color:var(--accent)}
+.counter{background:var(--bg);border-radius:8px;padding:12px 14px;font-size:14px}
+.counter strong{display:block;font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:2px}
+.nav{display:flex;justify-content:space-between;gap:8px}
+.nav button{background:none;border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13.5px}
+.nav button[disabled]{opacity:.35;cursor:default}
+.next{align-self:stretch;border:1px solid var(--line);border-radius:8px;padding:14px;font-size:15px;font-weight:600;background:var(--surface);text-align:left;display:flex;justify-content:space-between;gap:12px;cursor:pointer}
+.next:hover{border-color:var(--accent)}
+.crowd{display:flex;flex-direction:column;gap:6px;border-top:1px dashed var(--line);padding-top:12px;margin-top:4px}
+.crowd .head{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;color:var(--muted)}
+.crowd .head b{color:var(--ink);font-weight:600}
+.bars{display:flex;align-items:flex-end;gap:3px;height:56px}
+.bars span{flex:1;background:var(--accent);opacity:.75;border-radius:3px 3px 0 0;min-height:2px}
+.bars span.zero{opacity:.15}
+.crowd p{font-size:13px;color:var(--muted)}
+.think{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px}
+.result{font-size:14px;background:var(--soft);border-radius:8px;padding:12px 14px}
+.src{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;font-size:13.5px}
+.src span{color:var(--muted);font-size:12px;display:block}
+.foot{font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px}
+
+/* quiz */
+.hero{font-size:27px}
+.axes-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.axes-list li{display:grid;grid-template-columns:72px 1fr;gap:8px;font-size:14px;align-items:baseline}
+.axes-list b{color:var(--c);font-weight:600}
+.progress{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.progress span{display:block;height:100%;background:var(--accent);transition:width .2s}
+.qtext{font-size:22px;min-height:3.2em}
+.choices{display:flex;flex-direction:column;gap:8px}
+.choice{display:flex;align-items:center;gap:12px;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;cursor:pointer}
+.choice:hover{border-color:var(--accent)}
+.choice[aria-pressed=true]{border-color:var(--accent);background:var(--soft);font-weight:600}
+.choice kbd{font-family:var(--body);font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 5px;min-width:20px;text-align:center}
+.qnav{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.track{display:flex;flex-direction:column;gap:6px}
+.track .top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.track .name{font-weight:600;color:var(--c);font-size:14px}
+.track .readout{font-size:13px;color:var(--muted)}
+.rail{position:relative;height:28px}
+.rail::before{content:"";position:absolute;left:0;right:0;top:13px;height:2px;background:var(--line)}
+.rail .mid{position:absolute;left:50%;top:7px;width:1px;height:14px;background:var(--line)}
+.rail .fill{position:absolute;top:12px;height:4px;background:var(--c);opacity:.35;border-radius:2px}
+.rail .dot{position:absolute;top:5px;width:18px;height:18px;border-radius:50%;background:var(--c);border:3px solid var(--surface);box-shadow:0 0 0 1px var(--c);transform:translateX(-50%)}
+.poles{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted)}
+.far{border-top:4px solid var(--c);border-radius:4px 4px 12px 12px}
+.far h3{font-size:19px}
+.far blockquote{margin:0;font-family:var(--display);font-size:17px;line-height:1.65}
+.summary{font-family:var(--display);font-size:20px;line-height:1.55}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap}
+.btnrow > *{flex:1 1 160px}
+.copied{font-size:13px;color:var(--muted);min-height:1.2em}
+@media (prefers-reduced-motion:no-preference){.lens{animation:in .25s ease}@keyframes in{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:none}}}
+</style>
+
+<div class="wrap">
+  <header class="mast">
+    <div class="logo">시선들<small>하나의 이슈, 다섯 개의 눈</small></div>
+    <div class="dots" aria-hidden="true"><i style="background:var(--l1)"></i><i style="background:var(--l2)"></i><i style="background:var(--l3)"></i><i style="background:var(--l4)"></i><i style="background:var(--l5)"></i></div>
+  </header>
+  <nav class="topnav">
+    <button id="navIssues" aria-current="page">이슈</button>
+    <button id="navMap">나의 시선 지도</button>
+  </nav>
+
+  <!-- HOME -->
+  <section id="home" class="view">
+    <div class="box">
+      <div class="cal-head">
+        <h2 id="calTitle"></h2>
+        <div class="arrows"><button id="calPrev" aria-label="이전 달">‹</button><button id="calNext" aria-label="다음 달">›</button></div>
+      </div>
+      <div class="cal" id="cal"></div>
+      <div class="legend">
+        <span><i class="d"></i>다 읽음</span><span><i class="p"></i>일부 읽음</span><span><i></i>안 읽음</span><span><i class="n"></i>발행 없음</span>
+      </div>
+      <p class="streak" id="streak"></p>
+    </div>
+
+    <div id="edition" class="view"></div>
+    <p class="cloud" id="cloud"><i></i><span>읽은 기록과 응답은 이 기기에만 저장돼요.</span></p>
+    <div class="prompt" id="install" hidden><p id="installText">홈 화면에 설치하면 앱처럼 바로 열 수 있어요.</p><button id="installBtn">설치하기</button><button id="installClose" aria-label="안내 닫기" style="background:none;color:var(--muted);padding:8px">닫기</button></div>
+    <p class="foot">시선들은 결론을 내려주지 않아요. 각 시선은 실제로 오가는 주장을 가장 설득력 있는 형태로 정리하고, 그 시선에 가장 아픈 반론을 함께 붙여요.</p>
+  </section>
+
+  <!-- DETAIL -->
+  <section id="detail" class="view" hidden>
+    <button class="back" id="back">← 이슈 목록</button>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <p class="eyebrow" id="cat"></p>
+      <h1 class="q" id="q"></h1>
+      <p class="lede" id="lede"></p>
+    </div>
+    <div class="box stance">
+      <label for="before">읽기 전, 내 생각은?</label>
+      <input type="range" id="before" min="0" max="100" value="50">
+      <div class="scale"><span class="ax0"></span><span>잘 모르겠다</span><span class="ax1"></span></div>
+    </div>
+    <div class="box">
+      <h2>다툼 없는 사실</h2>
+      <ul class="facts" id="facts"></ul>
+    </div>
+    <div class="box">
+      <h2>시선 지도</h2>
+      <p class="lede" style="font-size:13.5px" id="specNote"></p>
+      <div class="spec" id="spec"></div>
+      <div class="scale"><span class="ax0"></span><span class="ax1"></span></div>
+      <div class="crowd" id="crowd"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="tabs" role="tablist" id="tabs"></div>
+      <article class="lens" id="lens"></article>
+      <div class="nav"><button id="prev">← 이전 시선</button><button id="nextLens">다음 시선 →</button></div>
+    </div>
+    <div class="box">
+      <h2>스스로 물어볼 질문</h2>
+      <ol class="think" id="think"></ol>
+    </div>
+    <div class="box stance">
+      <label for="after">다 읽고 난 지금은?</label>
+      <input type="range" id="after" min="0" max="100" value="50">
+      <div class="scale"><span class="ax0"></span><span>잘 모르겠다</span><span class="ax1"></span></div>
+      <p class="result" id="result">슬라이더를 움직이면 읽기 전과 비교해 드려요.</p>
+    </div>
+    <div class="box">
+      <h2>참고한 기사</h2>
+      <ul class="src" id="src"></ul>
+    </div>
+    <button class="next" id="nextIssue"></button>
+  </section>
+
+  <!-- MAP: INTRO -->
+  <section id="mapIntro" class="view" hidden>
+    <h1 class="hero">나는 어떤 문제에서<br>어디쯤 서 있을까?</h1>
+    <p>보수냐 진보냐 한 단어로 정하지 않아요. 다섯 개의 축 위에서 내 생각이 각각 어디쯤인지 지도로 보여드려요. 결과는 매일 이슈를 읽을 때 "나와 가까운 시선, 먼 시선"을 알려주는 데도 쓰여요.</p>
+    <div class="box"><ul class="axes-list" id="axesList"></ul></div>
+    <button class="btn" id="start">25문항 시작하기 · 약 3분</button>
+    <p class="fine">정답은 없어요. 처음 드는 생각으로 답해 주세요. 답변과 결과는 이 기기에만 남고, 서버로 보내지 않아요.</p>
+  </section>
+
+  <!-- MAP: QUIZ -->
+  <section id="quiz" class="view" hidden>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div class="qnav"><span class="eyebrow" id="count"></span><span class="eyebrow">숫자키 1~5로도 답할 수 있어요</span></div>
+      <div class="progress"><span id="bar"></span></div>
+    </div>
+    <h2 class="qtext" id="qtext"></h2>
+    <div class="choices" id="choices"></div>
+    <div class="qnav">
+      <button class="ghost" id="prevQ">← 이전 문항</button>
+      <button class="ghost" id="skipQ">잘 모르겠어요 (중립)</button>
+    </div>
+  </section>
+
+  <!-- MAP: RESULT -->
+  <section id="mapResult" class="view" hidden>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <p class="eyebrow" id="mapDate">나의 시선 지도</p>
+      <p class="summary" id="summary"></p>
+    </div>
+    <div class="box" id="tracks"></div>
+    <div class="box far" id="far"></div>
+    <div class="box">
+      <h2>이 결과를 읽는 법</h2>
+      <p class="fine" style="font-size:13.5px">가운데 세로선은 양쪽 문항에 고르게 답한 지점이에요. 한국 사람들의 평균이 아니에요. 축마다 문항 5개는 양쪽 방향으로 섞여 있어서, 무조건 '동의'만 누르면 가운데 근처로 모여요. 이 지도는 25개 문장에 대한 그날의 반응일 뿐, 나라는 사람 전체를 설명하지 않아요.</p>
+    </div>
+    <div class="btnrow">
+      <button class="btn" id="toIssues">이 지도로 이슈 읽기</button>
+      <button class="ghost" id="copy">결과 문구 복사</button>
+      <button class="ghost" id="again">다시 해보기</button>
+    </div>
+    <p class="copied" id="copied" aria-live="polite"></p>
+  </section>
+</div>
+
+<script src="editions/index.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const COLORS = ["--l1","--l2","--l3","--l4","--l5"];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const store = {
+  get(k){ try{ return localStorage.getItem(k) }catch(e){ return null } },
+  set(k,v){ try{ localStorage.setItem(k,v) }catch(e){} },
+  json(k,d){ try{ return JSON.parse(localStorage.getItem(k)) ?? d }catch(e){ return d } }
+};
+const INDEX = (window.EDITION_INDEX || []).slice().sort((a,b)=>a.date.localeCompare(b.date));
+const ymd = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const TODAY = ymd(new Date());
+
+/* =========================================================
+   시선 지도(성향 테스트) 데이터
+   축: 0 = 왼쪽 끝(A), 100 = 오른쪽 끝(B). 문항 d=+1 이면 '동의'가 B쪽
+   ========================================================= */
+const AXES = [
+  { id:"eco", name:"경제", c:"--l1", A:"시장·성장", B:"분배·복지",
+    argA:"분배할 몫은 성장에서 나온다. 성장이 멈추면 복지 재원도 함께 줄고, 가장 먼저 타격받는 건 형편이 어려운 사람들이다.",
+    argB:"성장의 열매가 저절로 아래까지 흘러내리지 않는다는 건 지난 수십 년이 보여줬다. 출발선이 다르면 시장 경쟁도 공정하지 않다." },
+  { id:"nk", name:"대북·통일", c:"--l2", A:"압박·억제", B:"관여·교류",
+    argA:"상대가 핵을 계속 고도화하는 동안의 대화는 시간을 벌어줄 뿐이다. 억제력이 분명해야 대화도 의미가 생긴다.",
+    argB:"압박만으로 북한이 바뀐 적은 없다. 접촉이 끊기면 오판과 충돌 위험이 커지고, 그 비용은 한반도에 사는 우리가 치른다." },
+  { id:"dip", name:"외교", c:"--l3", A:"동맹 중심", B:"균형·자주",
+    argA:"동맹은 보험이다. 위기가 왔을 때 기댈 곳이 분명해야 하고, 애매한 태도는 양쪽 모두의 신뢰를 잃게 한다.",
+    argB:"강대국 한쪽에 모든 것을 걸면 그 나라의 선택에 우리 운명이 묶인다. 선택지를 넓혀 두는 것이 국익이다." },
+  { id:"soc", name:"사회", c:"--l4", A:"전통·공동체", B:"변화·개인",
+    argA:"공동체를 지탱하는 규범은 한번 무너지면 되돌리기 어렵다. 너무 빠른 변화의 비용은 기댈 곳 없는 사람들이 먼저 치른다.",
+    argB:"전통도 한때는 변화였다. 누군가를 제도 밖에 두는 규범이라면, 지키는 것 자체가 목적이 될 수는 없다." },
+  { id:"state", name:"국가 권한", c:"--l5", A:"질서·안보", B:"자유·권리",
+    argA:"자유는 안전한 사회 위에서만 누릴 수 있다. 국가가 시민을 지킬 수단을 잃으면 가장 먼저 위험해지는 건 평범한 사람이다.",
+    argB:"국가 권력은 한번 커지면 잘 줄어들지 않는다. 오늘 범죄자를 감시하는 도구가 내일 비판자를 향하지 않으리라는 보장은 없다." }
+];
+const QS = [
+  ["eco",+1,"소득 격차를 줄이기 위해 고소득층의 세금을 더 늘려야 한다."],
+  ["nk",+1,"북한의 비핵화가 진전되지 않더라도 대화와 교류는 이어가야 한다."],
+  ["dip",-1,"한미동맹은 한국 외교에서 무엇보다 우선해야 한다."],
+  ["soc",+1,"동성 커플도 법적으로 가족으로 인정받을 수 있어야 한다."],
+  ["state",-1,"범죄 예방을 위해서라면 공공장소의 CCTV와 감시를 늘려도 된다."],
+  ["eco",-1,"경제가 성장하면 그 혜택은 결국 대부분의 사람에게 돌아간다."],
+  ["nk",-1,"북한이 도발하면 대화보다 확실한 대응이 우선이다."],
+  ["dip",+1,"한국은 미국과 중국 사이에서 어느 한쪽으로 치우치지 않아야 한다."],
+  ["soc",-1,"사회 변화는 기존 가치와 제도를 존중하며 천천히 이뤄져야 한다."],
+  ["state",+1,"사형제는 폐지해야 한다."],
+  ["eco",+1,"기본적인 생활은 일자리가 있든 없든 국가가 보장해야 한다."],
+  ["nk",+1,"인도적 지원은 북한 정권의 태도와 상관없이 계속해야 한다."],
+  ["dip",-1,"가치를 공유하는 동맹을 위해서라면 경제적 손해를 일부 감수할 수 있다."],
+  ["soc",+1,"외국인 이민을 지금보다 적극적으로 받아들여야 한다."],
+  ["state",+1,"집회와 시위의 자유는 교통 불편이 생기더라도 넓게 보장해야 한다."],
+  ["eco",-1,"기업 활동에 대한 규제는 지금보다 줄여야 한다."],
+  ["nk",-1,"대북 제재는 비핵화가 이뤄지기 전까지 완화해서는 안 된다."],
+  ["dip",+1,"전시작전통제권은 가능한 한 빨리 한국이 가져와야 한다."],
+  ["soc",-1,"개인의 선택보다 가족과 공동체에 대한 책임이 먼저다."],
+  ["state",-1,"국가보안법은 지금도 필요하다."],
+  ["eco",+1,"최저임금은 기업 부담이 늘더라도 꾸준히 올려야 한다."],
+  ["nk",-1,"남북 협력 사업은 북한의 행동 변화를 확인한 뒤에 추진해야 한다."],
+  ["dip",+1,"한국은 군사와 외교에서 동맹에 덜 기대는 방향으로 가야 한다."],
+  ["soc",-1,"전통 의례와 문화는 시대가 바뀌어도 이어가야 한다."],
+  ["state",+1,"표현의 자유는 불쾌한 표현까지 포함해 최대한 넓게 보장해야 한다."]
+].map(([axis,d,t])=>({axis,d,t}));
+const CHOICES = [["매우 동의",2],["동의",1],["중립",0],["반대",-1],["매우 반대",-2]];
+const axisById = id => AXES.find(a=>a.id===id);
+
+/* 시선 지도 결과: { date, pos:{eco:..,...} } — 이 기기에만 저장 */
+let MAP = store.json("sisun:map", null);
+
+/* =========================================================
+   상태: 읽은 기록(이 기기 + 로그인 시 내 개인 공간), 응답(공유, 익명)
+   ========================================================= */
+let reads = store.json("sisun:reads", {});     // { "2026-10-08": { prosecution: 1728..., ... } }
+let E = null, issue = null, cur = 0, afterTouched = false, selDate = null;
+let calYM = null;
+const MIN_CROWD = 3;
+let DB = null, UID = null, cloud = "off", mine = {}, all = {}, writing = Promise.resolve(), saveTimer = null, readTimer = null;
+const ik = id => `${E.date}:${id}`;
+const vkey = (id,w) => `sisun:${E.date}:${id}:${w}`;
+
+function getV(id){
+  const c = mine[ik(id)];
+  if (c) return { b: c.b ?? null, a: c.a ?? null };
+  const b = store.get(vkey(id,"before")), a = store.get(vkey(id,"after"));
+  return { b: b==null ? null : +b, a: a==null ? null : +a };
+}
+function setV(id, b, a){
+  store.set(vkey(id,"before"), b);
+  if (a != null) store.set(vkey(id,"after"), a);
+  if (cloud !== "on") return;
+  mine[ik(id)] = { b, a: a ?? null, t: Date.now() };
+  flushVotes();
+}
+function flushVotes(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    const body = JSON.parse(JSON.stringify(mine));
+    writing = writing.then(() => DB.doc("votes/" + UID).set(body)).catch(err => {
+      if (err && err.code === "invalid_argument") setCloud("readonly");
+    });
+  }, 700);
+}
+function markRead(date, id){
+  if (reads[date] && reads[date][id]) return;
+  (reads[date] = reads[date] || {})[id] = Date.now();
+  store.set("sisun:reads", JSON.stringify(reads));
+  if (cloud !== "on") return;
+  clearTimeout(readTimer);
+  readTimer = setTimeout(() => {
+    const body = { reads: JSON.parse(JSON.stringify(reads)) };
+    writing = writing.then(() => DB.doc(`data/users/${UID}/state`).set(body)).catch(()=>{});
+  }, 500);
+}
+function readStatus(date){
+  const ent = INDEX.find(x=>x.date===date);
+  if (!ent) return "none";
+  const k = Object.keys(reads[date] || {}).length;
+  return k >= ent.n ? "done" : k > 0 ? "partial" : "unread";
+}
+function crowdFor(id){
+  const rows = Object.values(all).map(d => d && d[ik(id)]).filter(r => r && r.b != null);
+  return { n: rows.length, pos: rows.map(r => r.a ?? r.b), moved: rows.filter(r => r.a != null).map(r => r.a - r.b) };
+}
+function setCloud(state){
+  cloud = state;
+  const el = $("cloud");
+  el.className = "cloud" + (state === "on" ? " on" : "");
+  el.querySelector("span").textContent =
+    state === "on" ? "로그인됨 · 읽은 기록은 나만 볼 수 있게, 이슈 응답은 이름 없이 독자 분포에 더해져요."
+    : state === "readonly" ? "보기 전용으로 초대돼 있어 응답이 공유되지 않아요. 기록은 이 기기에 남아요."
+    : "읽은 기록과 응답은 이 기기에만 저장돼요.";
+}
+async function initCloud(){
+  if (!window.claude || !window.claude.use) return setCloud("off");
+  try {
+    const [db, user] = await Promise.all([claude.use("db"), claude.use("user")]);
+    if (!db || !user) return setCloud("off");
+    UID = await user.id();
+    if (!UID) return setCloud("off");
+    DB = db;
+    // 읽은 기록: 클라우드와 이 기기 기록을 합침
+    try {
+      const st = await db.doc(`data/users/${UID}/state`).get();
+      const remote = (st.exists && st.data().reads) || {};
+      for (const d in remote) reads[d] = Object.assign({}, remote[d], reads[d] || {});
+      store.set("sisun:reads", JSON.stringify(reads));
+    } catch(e) {}
+    let first = true;
+    db.collection("votes").onSnapshot(snap => {
+      all = {};
+      snap.docs.forEach(d => { if (d.exists) all[d.id] = d.data(); });
+      if (first) {
+        first = false;
+        if (all[UID]) mine = JSON.parse(JSON.stringify(all[UID]));
+        if (cloud !== "readonly") setCloud("on");
+        if (Object.keys(reads).length) { const body = { reads: JSON.parse(JSON.stringify(reads)) }; writing = writing.then(() => db.doc(`data/users/${UID}/state`).set(body)).catch(()=>{}); }
+      }
+      if (!$("home").hidden) renderHome(); else if (!$("detail").hidden) renderCrowd();
+    }, () => setCloud("off"));
+  } catch (e) { setCloud("off"); }
+}
+
+/* =========================================================
+   호 불러오기 (editions/<날짜>.js 를 필요할 때 로드)
+   ========================================================= */
+const loading = {};
+function loadEdition(date){
+  if (window.EDITIONS && window.EDITIONS[date]) return Promise.resolve(window.EDITIONS[date]);
+  if (loading[date]) return loading[date];
+  return loading[date] = new Promise((res, rej) => {
+    const s = document.createElement("script");
+    s.src = `editions/${date}.js`;
+    s.onload = () => (window.EDITIONS && window.EDITIONS[date]) ? res(window.EDITIONS[date]) : rej();
+    s.onerror = () => { delete loading[date]; rej(); };
+    document.head.appendChild(s);
+  });
+}
+
+/* =========================================================
+   화면 전환
+   ========================================================= */
+const VIEWS = ["home","detail","mapIntro","quiz","mapResult"];
+function show(v){
+  VIEWS.forEach(s => $(s).hidden = s !== v);
+  const onMap = ["mapIntro","quiz","mapResult"].includes(v);
+  $("navIssues").setAttribute("aria-current", onMap ? "false" : "page");
+  $("navMap").setAttribute("aria-current", onMap ? "page" : "false");
+  window.scrollTo(0,0);
+}
+$("navIssues").onclick = () => goHome();
+$("navMap").onclick = () => MAP ? (renderMapResult(), show("mapResult")) : show("mapIntro");
+
+/* =========================================================
+   달력
+   ========================================================= */
+function renderCal(){
+  const [y, m] = calYM;
+  $("calTitle").textContent = `${y}년 ${m+1}월`;
+  const first = new Date(y, m, 1).getDay(), days = new Date(y, m+1, 0).getDate();
+  let h = ["일","월","화","수","목","금","토"].map(w=>`<span class="wd">${w}</span>`).join("");
+  for (let k=0; k<first; k++) h += "<span></span>";
+  for (let d=1; d<=days; d++){
+    const ds = `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const st = readStatus(ds);
+    const cls = ["day", st!=="none"?"has":"", st==="partial"?"partial":"", st==="done"?"done":"", ds===TODAY?"today":"", ds===selDate?"sel":""].filter(Boolean).join(" ");
+    const label = { none:"발행 없음", unread:"안 읽음", partial:"일부 읽음", done:"다 읽음" }[st];
+    h += st==="none"
+      ? `<span class="${cls}" aria-label="${m+1}월 ${d}일 ${label}">${d}</span>`
+      : `<button class="${cls}" data-d="${ds}" aria-label="${m+1}월 ${d}일 ${label}">${d}</button>`;
+  }
+  $("cal").innerHTML = h;
+  $("cal").querySelectorAll("button.day").forEach(b => b.onclick = () => selectDate(b.dataset.d));
+  const total = INDEX.length, done = INDEX.filter(x=>readStatus(x.date)==="done").length;
+  $("streak").innerHTML = total ? `지금까지 <b>${total}</b>개 호 중 <b>${done}</b>개를 다 읽었어요.` : "아직 발행된 호가 없어요.";
+}
+$("calPrev").onclick = () => { calYM = calYM[1]===0 ? [calYM[0]-1, 11] : [calYM[0], calYM[1]-1]; renderCal(); };
+$("calNext").onclick = () => { calYM = calYM[1]===11 ? [calYM[0]+1, 0] : [calYM[0], calYM[1]+1]; renderCal(); };
+
+async function selectDate(date){
+  selDate = date;
+  renderCal();
+  $("edition").innerHTML = `<p class="empty">불러오는 중이에요…</p>`;
+  try { E = await loadEdition(date); renderEdition(); }
+  catch(e){ $("edition").innerHTML = `<p class="empty">이 날의 호를 불러오지 못했어요. 잠시 뒤 다시 눌러 주세요.</p>`; }
+}
+
+/* =========================================================
+   홈: 선택한 날의 호
+   ========================================================= */
+function side(v, ax){ return v<35 ? `${ax[0]} 쪽` : v>65 ? `${ax[1]} 쪽` : "중간"; }
+function nearest(iss, v){ return iss.lenses.reduce((m,l)=>Math.abs(l.pos-v)<Math.abs(m.pos-v)?l:m); }
+function expected(iss){
+  if (!MAP || !iss.quiz) return null;
+  const p = MAP.pos[iss.quiz.axis]; if (p == null) return null;
+  return iss.quiz.dir === 1 ? p : 100 - p;
+}
+
+function renderEdition(){
+  if (!E) return;
+  const prompt = MAP ? "" : `<div class="prompt"><p>3분짜리 <b>나의 시선 지도</b>를 만들면, 이슈마다 나와 가까운 시선과 먼 시선을 짚어 드려요.</p><button id="promptMap">지도 만들기</button></div>`;
+  $("edition").innerHTML = `
+    <div class="issueno"><span class="eyebrow">${esc(E.dateLabel)}</span><span class="eyebrow">제${E.no}호 · 이슈 ${E.issues.length}개</span></div>
+    <p class="intro">${esc(E.intro)}</p>
+    ${prompt}
+    <div class="feed" id="feed"></div>`;
+  if (!MAP) $("promptMap").onclick = () => show("mapIntro");
+  E.issues.forEach((iss,i)=>{
+    const v = getV(iss.id), me = v.a ?? v.b;
+    const n = cloud !== "off" ? crowdFor(iss.id).n : null;
+    const isRead = !!(reads[E.date] && reads[E.date][iss.id]);
+    const b = document.createElement("button");
+    b.className = "issue";
+    b.innerHTML = `
+      <div class="row"><span>${esc(iss.cat)}</span>${isRead ? `<span class="read">읽음</span>` : `<span class="count">시선 ${iss.lenses.length}개</span>`}</div>
+      <h3>${esc(iss.q.replace("\n"," "))}</h3>
+      <div class="row"><span>${esc(iss.card)}</span></div>
+      <div class="mini">${iss.lenses.map((l,j)=>`<i style="left:${l.pos}%;background:var(${COLORS[j]})"></i>`).join("")}${me!=null?`<i class="me" style="left:${me}%"></i>`:""}</div>
+      <div class="mini-scale"><span>${esc(iss.axis[0])}</span><span>${esc(iss.axis[1])}</span></div>
+      <p class="status">${me!=null ? `내 위치 <b>${side(+me, iss.axis)}</b> · 가장 가까운 시선 <b>${esc(nearest(iss,+me).k)}</b>` : "아직 내 위치를 정하지 않았어요"}${n ? ` · 독자 <b>${n}</b>명 응답` : ""}</p>`;
+    b.onclick = () => openIssue(i);
+    $("feed").appendChild(b);
+  });
+}
+function renderHome(){ renderCal(); renderEdition(); }
+function goHome(){ show("home"); renderHome(); }
+
+/* =========================================================
+   이슈 상세
+   ========================================================= */
+function openIssue(i){
+  issue = E.issues[i];
+  markRead(E.date, issue.id);
+  $("cat").textContent = issue.cat;
+  $("q").textContent = issue.q;
+  $("lede").textContent = issue.lede;
+  document.querySelectorAll(".ax0").forEach(e=>e.textContent=issue.axis[0]);
+  document.querySelectorAll(".ax1").forEach(e=>e.textContent=issue.axis[1]);
+  $("facts").innerHTML = issue.facts.map(f=>`<li>${esc(f)}</li>`).join("");
+  $("think").innerHTML = issue.think.map(f=>`<li>${esc(f)}</li>`).join("");
+  $("src").innerHTML = issue.sources.map(([o,t,u])=>`<li><span>${esc(o)}</span><a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a></li>`).join("");
+
+  const ex = expected(issue);
+  const near = ex!=null ? nearest(issue, ex) : null;
+  const farL = ex!=null ? issue.lenses.reduce((m,l)=>Math.abs(l.pos-ex)>Math.abs(m.pos-ex)?l:m) : null;
+  $("specNote").textContent = ex!=null
+    ? `점선은 내 시선 지도(${axisById(issue.quiz.axis).name} 축)로 짐작한 내 위치예요. 실제로 고른 위치와 비교해 보세요.`
+    : (MAP ? "이 이슈는 시선 지도의 다섯 축과 딱 맞아떨어지지 않아서, 예상 위치 없이 보여드려요." : "각 시선이 어느 쪽에 서 있는지 놓아 봤어요. 점을 누르면 그 시선으로 이동해요.");
+
+  const tabs = $("tabs"), spec = $("spec");
+  tabs.innerHTML = ""; spec.innerHTML = '<div class="axis"></div>';
+  const order = issue.lenses.map((l,j)=>j).sort((a,b)=>issue.lenses[a].pos-issue.lenses[b].pos);
+  issue.lenses.forEach((l,j)=>{
+    const tag = l===near ? "<em>가까움</em>" : l===farL ? "<em>멂</em>" : "";
+    const t = document.createElement("button");
+    t.className="tab"; t.setAttribute("role","tab"); t.style.color=`var(${COLORS[j]})`;
+    t.innerHTML=`<i style="background:var(${COLORS[j]})"></i><span style="color:var(--ink)">${esc(l.k)}</span>${tag}`;
+    t.onclick=()=>pick(j); tabs.appendChild(t);
+    const p = document.createElement("button");
+    p.className="pin"+(order.indexOf(j)%2?" lo":""); p.style.left=l.pos+"%"; p.style.color=`var(${COLORS[j]})`;
+    p.innerHTML=`<span>${esc(l.k)}</span><b style="background:var(${COLORS[j]})"></b>`;
+    p.setAttribute("aria-label",`${l.k} 시선 보기`);
+    p.onclick=()=>{pick(j); $("lens").scrollIntoView({behavior:"smooth",block:"start"})};
+    spec.appendChild(p);
+  });
+  const you = document.createElement("div"); you.className="you"; you.id="you"; you.textContent="나"; spec.appendChild(you);
+  if (ex!=null){ const e2 = document.createElement("div"); e2.className="expect"; e2.style.left=ex+"%"; e2.textContent="예상"; spec.appendChild(e2); }
+  issue._near = near; issue._far = farL;
+
+  const v = getV(issue.id);
+  $("before").value = v.b ?? (ex ?? 50); $("after").value = v.a ?? 50;
+  afterTouched = v.a != null;
+  $("result").textContent = "슬라이더를 움직이면 읽기 전과 비교해 드려요.";
+
+  const n = (E.issues.indexOf(issue)+1) % E.issues.length;
+  $("nextIssue").innerHTML = n===0 ? `<span>이슈 목록으로</span><span>→</span>` : `<span>다음 이슈 · ${esc(E.issues[n].q.replace("\n"," "))}</span><span>→</span>`;
+  $("nextIssue").onclick = () => n===0 ? goHome() : openIssue(n);
+
+  pick(0); updateStance(false); renderCrowd();
+  show("detail");
+}
+function pick(j){
+  cur=j; const l=issue.lenses[j];
+  [...$("tabs").children].forEach((t,k)=>t.setAttribute("aria-selected", k===j));
+  [...$("spec").querySelectorAll(".pin")].forEach((p,k)=>p.classList.toggle("on", k===j));
+  const el=$("lens"); el.style.setProperty("--c",`var(${COLORS[j]})`);
+  const badge = l===issue._near ? `<span class="badge">내 시선 지도와 가장 가까운 시선</span>` : l===issue._far ? `<span class="badge">내 시선 지도와 가장 먼 시선 · 천천히 읽어 보세요</span>` : "";
+  el.innerHTML=`${badge}<p class="who">이런 사람들이 주로 말해요 · ${esc(l.who)}</p>
+   <h3>${esc(l.title)}</h3>
+   <div><h4>핵심 주장</h4><p>${esc(l.claim)}</p></div>
+   <div><h4>근거</h4><ul>${l.why.map(w=>`<li>${esc(w)}</li>`).join("")}</ul></div>
+   <div class="counter"><strong>이 시선에 가장 아픈 질문</strong>${esc(l.counter)}</div>`;
+  el.style.animation="none"; el.offsetHeight; el.style.animation="";
+  $("prev").disabled = j===0; $("nextLens").disabled = j===issue.lenses.length-1;
+}
+$("prev").onclick=()=>cur>0&&pick(cur-1);
+$("nextLens").onclick=()=>cur<issue.lenses.length-1&&pick(cur+1);
+
+function updateStance(save){
+  const b=+$("before").value, a=+$("after").value;
+  $("you").style.left = (afterTouched ? a : b) + "%";
+  if(save) setV(issue.id, b, afterTouched ? a : null);
+  if(!afterTouched) return;
+  const d = a-b, ax = issue.axis;
+  const msg = Math.abs(d)<8
+    ? `읽기 전과 거의 같아요 (${side(a,ax)}). 생각이 단단하거나, 아직 마음을 움직인 시선을 못 만난 거예요.`
+    : `${side(b,ax)}에서 ${side(a,ax)}으로 ${Math.abs(d)}칸 움직였어요. 어떤 시선이 마음을 움직였는지 한 줄로 적어 보면 좋아요.`;
+  const ex = expected(issue);
+  const gap = ex!=null ? ` 시선 지도로 짐작한 위치와는 ${Math.abs(a-ex)}칸 차이가 나요.` : "";
+  $("result").textContent = msg + ` 지금 위치에서 가장 가까운 시선은 '${nearest(issue,a).k}'예요.` + gap;
+}
+$("before").oninput=()=>updateStance(true);
+$("after").oninput=()=>{afterTouched=true; updateStance(true);};
+$("back").onclick = goHome;
+
+function renderCrowd(){
+  const el = $("crowd");
+  if (!issue) return;
+  if (cloud === "off") { el.innerHTML = `<p>다른 독자들이 어디에 섰는지 보여주는 분포는 준비 중이에요.</p>`; return; }
+  const c = crowdFor(issue.id);
+  if (c.n < MIN_CROWD) { el.innerHTML = `<div class="head"><span>독자 분포</span><span>응답 <b>${c.n}</b>명</span></div><p>응답이 ${MIN_CROWD}명 이상 모이면 분포가 공개돼요. 누가 어디에 섰는지 짐작할 수 없게 하려는 거예요.</p>`; return; }
+  const bins = Array(10).fill(0);
+  c.pos.forEach(p => bins[Math.min(9, Math.floor(p/10))]++);
+  const max = Math.max(...bins), peak = bins.indexOf(max);
+  const avgMove = c.moved.length ? Math.round(c.moved.reduce((s,d)=>s+Math.abs(d),0)/c.moved.length) : null;
+  el.innerHTML = `<div class="head"><span>독자 분포</span><span>응답 <b>${c.n}</b>명</span></div>
+    <div class="bars">${bins.map(b=>`<span class="${b?"":"zero"}" style="height:${b?Math.max(8,b/max*100):3}%" title="${b}명"></span>`).join("")}</div>
+    <p>가장 많이 몰린 곳은 <b style="color:var(--ink)">${side(peak*10+5, issue.axis)}</b>이에요.${avgMove!=null ? ` 끝까지 읽은 ${c.moved.length}명은 읽기 전보다 평균 ${avgMove}칸 움직였어요.` : ""}</p>`;
+}
+
+/* =========================================================
+   시선 지도: 테스트
+   ========================================================= */
+let answers = Array(QS.length).fill(null), qi = 0;
+$("axesList").innerHTML = AXES.map(a=>`<li style="--c:var(${a.c})"><b>${a.name}</b><span>${a.A} <span class="muted">↔</span> ${a.B}</span></li>`).join("");
+function renderQ(){
+  const q = QS[qi];
+  $("count").textContent = `${qi+1} / ${QS.length}`;
+  $("bar").style.width = `${qi/QS.length*100}%`;
+  $("qtext").textContent = q.t;
+  $("choices").innerHTML = CHOICES.map(([label,v],k)=>`<button class="choice" data-v="${v}" aria-pressed="${answers[qi]===v}"><kbd>${k+1}</kbd>${label}</button>`).join("");
+  [...$("choices").children].forEach(b=>b.onclick=()=>answer(+b.dataset.v));
+  $("prevQ").disabled = qi===0;
+}
+function answer(v){
+  answers[qi] = v;
+  [...$("choices").children].forEach(b=>b.setAttribute("aria-pressed", +b.dataset.v===v));
+  setTimeout(()=>{ if(qi < QS.length-1){ qi++; renderQ(); } else finishQuiz(); }, 160);
+}
+$("start").onclick = ()=>{ qi=0; answers.fill(null); show("quiz"); renderQ(); };
+$("prevQ").onclick = ()=>{ if(qi>0){ qi--; renderQ(); } };
+$("skipQ").onclick = ()=>answer(0);
+document.addEventListener("keydown", e=>{
+  if($("quiz").hidden) return;
+  const k = +e.key; if(k>=1 && k<=5) answer(CHOICES[k-1][1]);
+  if(e.key==="Backspace" && qi>0){ e.preventDefault(); qi--; renderQ(); }
+});
+function finishQuiz(){
+  $("bar").style.width = "100%";
+  const pos = {};
+  AXES.forEach(a=>{
+    const qs = QS.map((q,k)=>({q,v:answers[k]??0})).filter(x=>x.q.axis===a.id);
+    const raw = qs.reduce((s,x)=>s + x.v*x.q.d, 0);
+    pos[a.id] = Math.round(50 + raw/(2*qs.length)*50);
+  });
+  MAP = { date: TODAY, pos };
+  store.set("sisun:map", JSON.stringify(MAP));
+  renderMapResult(); show("mapResult");
+}
+function reading(a, p){
+  const d = p-50, pole = d<0 ? a.A : a.B, m = Math.abs(d);
+  if(m < 10) return "가운데 근처";
+  if(m < 25) return `${pole} 쪽으로 조금`;
+  if(m < 40) return `${pole} 쪽으로`;
+  return `${pole} 쪽으로 뚜렷하게`;
+}
+const sentence = (a,p) => Math.abs(p-50) < 10 ? "가운데 근처에 있어요" : `${reading(a,p)} 기울어 있어요`;
+const iyeyo = w => { const c = w.charCodeAt(w.length-1); return (c>=0xAC00 && c<=0xD7A3 && (c-0xAC00)%28) ? "이에요" : "예요"; };
+function renderMapResult(){
+  const S = AXES.map(a=>({a, p: MAP.pos[a.id]}));
+  $("mapDate").textContent = `나의 시선 지도 · ${MAP.date.replace(/-/g,".")}에 만듦`;
+  $("tracks").innerHTML = S.map(({a,p})=>{
+    const left = Math.min(50,p), w = Math.abs(p-50);
+    return `<div class="track" style="--c:var(${a.c})">
+      <div class="top"><span class="name">${a.name}</span><span class="readout">${reading(a,p)}</span></div>
+      <div class="rail" role="img" aria-label="${a.name}, ${reading(a,p)}"><span class="mid"></span><span class="fill" style="left:${left}%;width:${w}%"></span><span class="dot" style="left:${p}%"></span></div>
+      <div class="poles"><span>${a.A}</span><span>${a.B}</span></div></div>`;
+  }).join("");
+  const sorted = [...S].sort((x,y)=>Math.abs(y.p-50)-Math.abs(x.p-50));
+  const strong = sorted[0], calm = sorted[sorted.length-1];
+  $("summary").textContent = S.every(s=>Math.abs(s.p-50)<10)
+    ? "다섯 축 모두에서 가운데 근처에 서 있어요. 어느 한쪽 논리에 쉽게 기울지 않는 편이에요."
+    : `가장 또렷한 축은 ${strong.a.name}${iyeyo(strong.a.name)}. ${sentence(strong.a,strong.p)}. 가장 고민이 많은 축은 ${calm.a.name}${iyeyo(calm.a.name)}. ${sentence(calm.a,calm.p)}.`;
+  if(Math.abs(strong.p-50) >= 10){
+    const opp = strong.p>50 ? strong.a.A : strong.a.B, arg = strong.p>50 ? strong.a.argA : strong.a.argB;
+    $("far").style.setProperty("--c",`var(${strong.a.c})`);
+    $("far").innerHTML = `<p class="eyebrow">나와 가장 먼 시선</p><h3>${strong.a.name} · ${opp} 쪽에서는 이렇게 말해요</h3><blockquote>“${arg}”</blockquote><p class="fine">동의하지 않아도 괜찮아요. 이 논리에 내가 어떻게 답할지 한 번 생각해 보는 것만으로 충분해요.</p>`;
+    $("far").hidden = false;
+  } else $("far").hidden = true;
+}
+$("again").onclick = ()=>show("mapIntro");
+$("toIssues").onclick = ()=>goHome();
+$("copy").onclick = async ()=>{
+  const text = "나의 시선 지도\n" + AXES.map(a=>`${a.name}: ${reading(a, MAP.pos[a.id])} (${a.A} ↔ ${a.B})`).join("\n");
+  try { await navigator.clipboard.writeText(text); $("copied").textContent = "복사했어요. 카톡이나 인스타에 붙여넣어 보세요."; }
+  catch(e){ $("copied").textContent = text; }
+};
+
+/* =========================================================
+   시작: 가장 최근 호를 열고, 그 달 달력을 보여줌
+   ========================================================= */
+(function boot(){
+  const latest = INDEX.length ? INDEX[INDEX.length-1].date : TODAY;
+  const [y, m] = latest.split("-").map(Number);
+  calYM = [y, m-1];
+  setCloud("off");
+  if (INDEX.length) selectDate(latest); else { renderCal(); $("edition").innerHTML = `<p class="empty">아직 발행된 호가 없어요.</p>`; }
+  initCloud();
+})();
+</script>
+
+<script>
+/* 앱 설치 안내 + 오프라인 지원 */
+(function(){
+  const box = document.getElementById("install"), txt = document.getElementById("installText"), btn = document.getElementById("installBtn");
+  const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+  let dismissed = false; try { dismissed = localStorage.getItem("sisun:installDismissed") === "1"; } catch(e) {}
+  const close = () => { box.hidden = true; try { localStorage.setItem("sisun:installDismissed", "1"); } catch(e) {} };
+  document.getElementById("installClose").onclick = close;
+  if (!standalone && !dismissed) {
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    if (ios) { txt.textContent = "Safari 아래쪽 공유 버튼을 누르고 '홈 화면에 추가'를 고르면 앱처럼 쓸 수 있어요."; btn.hidden = true; box.hidden = false; }
+    let deferred = null;
+    addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferred = e; box.hidden = false; });
+    btn.onclick = async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; close(); };
+    addEventListener("appinstalled", close);
+  }
+  if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+})();
+</script>
+</body>
+</html>
