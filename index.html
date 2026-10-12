@@ -7,6 +7,14 @@
 <meta name="description" content="하나의 이슈, 다섯 개의 눈. 결론을 내려주지 않는 데일리 이슈 읽기.">
 <meta name="theme-color" content="#f3f5f7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#11161c" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="시선들">
+<meta property="og:title" content="시선들 · 하나의 이슈, 다섯 개의 눈">
+<meta property="og:description" content="오늘의 정치·사회 이슈를 다섯 개의 시선으로 나눠 봐요. 결론은 내려주지 않아요.">
+<meta property="og:url" content="https://nhs1816.github.io/sisun/">
+<meta property="og:image" content="https://nhs1816.github.io/sisun/icons/icon-512.png">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
@@ -911,7 +919,9 @@ $("copy").onclick = async ()=>{
   document.getElementById("installClose").onclick = close;
   if (!standalone && !dismissed) {
     const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-    if (ios) { txt.textContent = "Safari 아래쪽 공유 버튼을 누르고 '홈 화면에 추가'를 고르면 앱처럼 쓸 수 있어요."; btn.hidden = true; box.hidden = false; }
+    const inApp = /KAKAOTALK|NAVER\(|Instagram|FBAN|FBAV|Line\//i.test(navigator.userAgent);
+    if (inApp) { txt.textContent = ios ? "앱처럼 쓰려면 오른쪽 아래 메뉴에서 'Safari로 열기'를 누른 뒤, 공유 버튼에서 '홈 화면에 추가'를 골라 주세요." : "앱처럼 쓰려면 메뉴에서 '다른 브라우저로 열기'를 누른 뒤 설치해 주세요."; btn.hidden = true; box.hidden = false; }
+    else if (ios) { txt.textContent = "Safari 아래쪽 공유 버튼을 누르고 '홈 화면에 추가'를 고르면 앱처럼 쓸 수 있어요."; btn.hidden = true; box.hidden = false; }
     let deferred = null;
     addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferred = e; box.hidden = false; });
     btn.onclick = async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; close(); };
