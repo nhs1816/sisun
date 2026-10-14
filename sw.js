@@ -1,6 +1,6 @@
 // 시선들 서비스 워커: 새 호를 놓치지 않도록 네트워크 우선, 오프라인이면 저장해 둔 사본으로 열어요.
-const CACHE = "sisun-v1";
-const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./editions/index.js",
+const CACHE = "sisun-v2";
+const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./editions/index.js", "./editions/glossary.js",
   "./icons/icon-180.png", "./icons/icon-192.png", "./icons/icon-512.png"];
 
 self.addEventListener("install", e => {

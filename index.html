@@ -231,6 +231,20 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .btnrow{display:flex;gap:8px;flex-wrap:wrap}
 .btnrow > *{flex:1 1 160px}
 .copied{font-size:13px;color:var(--muted);min-height:1.2em}
+/* 용어 밑줄 + 하단 시트 */
+.term{display:inline;background:none;border:0;margin:0;padding:0;font:inherit;line-height:inherit;letter-spacing:inherit;text-align:inherit;color:var(--accent);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px;cursor:pointer}
+.term:hover{text-decoration-thickness:2px}
+.sheet-bg{position:fixed;inset:0;z-index:60;background:rgba(10,14,20,.45)}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:61;display:flex;justify-content:center;padding:0 8px;pointer-events:none}
+.sheet-in{pointer-events:auto;width:100%;max-width:560px;max-height:78vh;overflow-y:auto;background:var(--surface);border:1px solid var(--line);border-bottom:0;border-radius:16px 16px 0 0;padding:10px 20px calc(24px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px;box-shadow:0 -8px 30px rgba(0,0,0,.18)}
+.sheet-in::before{content:"";align-self:center;width:36px;height:4px;border-radius:2px;background:var(--line);flex:none}
+.sheet-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sheet-x{background:none;border:1px solid var(--line);border-radius:8px;padding:4px 12px;cursor:pointer;font-size:13px;color:var(--muted)}
+.sheet h2{font-size:22px}
+.term-def{font-weight:600}
+.term-now{background:var(--soft);border-radius:8px;padding:12px 14px;font-size:14px}
+.term-now strong{display:block;font-size:12.5px;color:var(--accent);margin-bottom:2px}
+@media (prefers-reduced-motion:no-preference){.sheet:not([hidden]) .sheet-in{animation:up .22s ease}@keyframes up{from{transform:translateY(28px);opacity:.6}to{transform:none;opacity:1}}}
 @media (prefers-reduced-motion:no-preference){.lens{animation:in .25s ease}@keyframes in{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:none}}}
 </style>
 
@@ -335,6 +349,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
     </div>
     <div class="box">
       <h2>다툼 없는 사실</h2>
+      <p class="fine" id="termHint" hidden>파란 밑줄이 있는 말을 누르면 풀이가 나와요.</p>
       <ul class="facts" id="facts"></ul>
     </div>
     <div class="box">
@@ -421,7 +436,21 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   </section>
 </div>
 
+<div class="sheet-bg" id="termBg" hidden></div>
+<div class="sheet" id="termSheet" role="dialog" aria-modal="true" aria-labelledby="termTitle" hidden>
+  <div class="sheet-in">
+    <div class="sheet-head"><p class="eyebrow">용어 풀이</p><button class="sheet-x" id="termClose">닫기</button></div>
+    <h2 id="termTitle"></h2>
+    <p class="fine" id="termFull"></p>
+    <p class="term-def" id="termDef"></p>
+    <p id="termBody"></p>
+    <div class="term-now" id="termNow"><strong>왜 지금 이야기되나</strong><span id="termNowText"></span></div>
+    <ul class="src" id="termLinks"></ul>
+  </div>
+</div>
+
 <script src="editions/index.js"></script>
+<script src="editions/glossary.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 const COLORS = ["--l1","--l2","--l3","--l4","--l5"];
@@ -780,10 +809,13 @@ function openIssue(i){
   markRead(E.date, issue.id);
   $("cat").textContent = issue.cat;
   $("q").textContent = issue.q;
-  $("lede").textContent = issue.lede;
+  setTerms(issue);
+  $("lede").innerHTML = gl(issue.lede, new Set());
   document.querySelectorAll(".ax0").forEach(e=>e.textContent=issue.axis[0]);
   document.querySelectorAll(".ax1").forEach(e=>e.textContent=issue.axis[1]);
-  $("facts").innerHTML = issue.facts.map(f=>`<li>${esc(f)}</li>`).join("");
+  const fs = new Set();
+  $("facts").innerHTML = issue.facts.map(f=>`<li>${gl(f, fs)}</li>`).join("");
+  $("termHint").hidden = !$("detail").querySelector(".term");
   $("think").innerHTML = issue.think.map(f=>`<li>${esc(f)}</li>`).join("");
   $("src").innerHTML = issue.sources.map(([o,t,u])=>`<li><span>${esc(o)}</span><a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a></li>`).join("");
 
@@ -832,16 +864,73 @@ function pick(j){
   [...$("spec").querySelectorAll(".pin")].forEach((p,k)=>p.classList.toggle("on", k===j));
   const el=$("lens"); el.style.setProperty("--c",`var(${COLORS[j]})`);
   const badge = l===issue._near ? `<span class="badge">내 시선 지도와 가장 가까운 시선</span>` : l===issue._far ? `<span class="badge">내 시선 지도와 가장 먼 시선 · 천천히 읽어 보세요</span>` : "";
+  const ls = new Set();
   el.innerHTML=`${badge}<p class="who">이런 사람들이 주로 말해요 · ${esc(l.who)}</p>
    <h3>${esc(l.title)}</h3>
-   <div><h4>핵심 주장</h4><p>${esc(l.claim)}</p></div>
-   <div><h4>근거</h4><ul>${l.why.map(w=>`<li>${esc(w)}</li>`).join("")}</ul></div>
+   <div><h4>핵심 주장</h4><p>${gl(l.claim, ls)}</p></div>
+   <div><h4>근거</h4><ul>${l.why.map(w=>`<li>${gl(w, ls)}</li>`).join("")}</ul></div>
    <div class="counter"><strong>이 시선에 가장 아픈 질문</strong>${esc(l.counter)}</div>`;
   el.style.animation="none"; el.offsetHeight; el.style.animation="";
   $("prev").disabled = j===0; $("nextLens").disabled = j===issue.lenses.length-1;
 }
 $("prev").onclick=()=>cur>0&&pick(cur-1);
 $("nextLens").onclick=()=>cur<issue.lenses.length-1&&pick(cur+1);
+
+/* =========================================================
+   용어 풀이: editions/glossary.js(공용) + issues[].terms(그날 이슈용)
+   본문에서 자동으로 찾아 칸마다 처음 나온 곳에만 밑줄, 누르면 하단 시트
+   ========================================================= */
+let termDict = {}, termAlias = {}, termRe = null, termFrom = null;
+function setTerms(iss){
+  termDict = {}; termAlias = {};
+  const add = (k, v) => { termDict[k] = Object.assign({}, termDict[k], v); };
+  const G = window.GLOSSARY || {};
+  for (const k in G) add(k, G[k]);
+  for (const k in (iss.terms || {})) add(k, iss.terms[k]);
+  for (const k in termDict) [k, ...(termDict[k].aka || [])].forEach(w => { if (w && !termAlias[w]) termAlias[w] = k; });
+  const words = Object.keys(termAlias).sort((a,b)=>b.length-a.length).map(w=>w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"));
+  termRe = words.length ? new RegExp(words.join("|"), "g") : null;
+}
+function gl(text, seen){
+  const s = String(text);
+  if (!termRe) return esc(s);
+  let out = "", last = 0;
+  for (const m of s.matchAll(termRe)) {
+    const k = termAlias[m[0]];
+    out += esc(s.slice(last, m.index));
+    if (seen.has(k)) out += esc(m[0]);
+    else { seen.add(k); out += `<button type="button" class="term" data-term="${esc(k)}">${esc(m[0])}</button>`; }
+    last = m.index + m[0].length;
+  }
+  return out + esc(s.slice(last));
+}
+function openTerm(k, from){
+  const t = termDict[k]; if (!t) return;
+  termFrom = from || null;
+  $("termTitle").textContent = k;
+  $("termFull").textContent = t.full ? `정식 명칭 · ${t.full}` : ""; $("termFull").hidden = !t.full;
+  $("termDef").textContent = t.def || "";
+  $("termBody").textContent = t.body || ""; $("termBody").hidden = !t.body;
+  $("termNowText").textContent = t.now || ""; $("termNow").hidden = !t.now;
+  const links = (t.links || []).filter(x => /^https:\/\//.test(x[1]));
+  $("termLinks").innerHTML = links.map(([o,u])=>`<li><a href="${esc(u)}" target="_blank" rel="noopener">${esc(o)} ↗</a></li>`).join("");
+  $("termLinks").hidden = !links.length;
+  $("termBg").hidden = false; $("termSheet").hidden = false;
+  $("termSheet").querySelector(".sheet-in").scrollTop = 0;
+  document.body.style.overflow = "hidden";
+  $("termClose").focus();
+}
+function closeTerm(){
+  if ($("termSheet").hidden) return;
+  $("termBg").hidden = true; $("termSheet").hidden = true;
+  document.body.style.overflow = "";
+  if (termFrom) termFrom.focus({ preventScroll: true });
+}
+document.addEventListener("click", e => { const b = e.target.closest && e.target.closest(".term"); if (b) openTerm(b.dataset.term, b); });
+$("termClose").onclick = closeTerm;
+$("termBg").onclick = closeTerm;
+$("termSheet").onclick = e => { if (e.target === $("termSheet")) closeTerm(); };
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeTerm(); });
 
 function updateStance(save){
   const b=+$("before").value, a=+$("after").value;
